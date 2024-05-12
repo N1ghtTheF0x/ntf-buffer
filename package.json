@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/N1ghtTheF0x/ntf-.git"
+    "url": "git+https://github.com/N1ghtTheF0x/ntf-buffer.git"
   },
   "keywords": [
     "esm", "cjs", "nodejs", "browser", "arraybuffer", "buffer", "dataview", "typedarray", "typescript"
@@ -25,9 +25,9 @@
   "author": "N1ghtTheF0x",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/N1ghtTheF0x/ntf-/issues"
+    "url": "https://github.com/N1ghtTheF0x/ntf-buffer/issues"
   },
-  "homepage": "https://github.com/N1ghtTheF0x/ntf-#readme",
+  "homepage": "https://github.com/N1ghtTheF0x/ntf-buffer#readme",
   "devDependencies": {
     "typescript": "latest",
     "ts-node": "latest",
