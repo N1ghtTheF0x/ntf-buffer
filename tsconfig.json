@@ -1,0 +1,12 @@
+{
+    "include": ["source"],
+    "exclude": ["node_modules","dist"],
+    "compilerOptions": {
+        "target": "ESNext",
+        "strict": true,
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
+        "declarationDir": "dist/types"
+    }
+}
