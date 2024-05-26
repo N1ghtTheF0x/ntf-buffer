@@ -1,7 +1,7 @@
 {
   "name": "@ntf/buffer",
-  "version": "1.0.0",
-  "description": "Another library",
+  "version": "1.0.1",
+  "description": "Another buffer library",
   "files": ["dist"],
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",

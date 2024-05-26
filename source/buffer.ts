@@ -1,7 +1,7 @@
 import { MAX_DOUBLE, MAX_FLOAT, MAX_S16, MAX_S32, MAX_S64, MAX_S8, MAX_U16, MAX_U32, MAX_U64, MAX_U8, MIN_DOUBLE, MIN_FLOAT, MIN_S16, MIN_S32, MIN_S64, MIN_S8 } from "./limits"
-import { StructDefinition } from "./struct"
+import { StructDefinition, Struct } from "./struct"
 import { BinaryNumberMap, BinaryNumberType, Endianness, TypedArray, double, float, s16, s32, s64, s8, u16, u32, u64, u8 } from "./types"
-import { clamp, write_buffer } from "./utils"
+import { clamp, merge_arraybuffer, write_buffer } from "./utils"
 
 /**
  * a better buffer class that that shitty NodeJS `Buffer` class
@@ -79,6 +79,15 @@ export class Buffer
     public static fromTypedArray(array: TypedArray)
     {
         return new this(array.buffer.slice(array.byteOffset,array.byteOffset + array.byteLength))
+    }
+    /**
+     * create a `Buffer` instance from multiple `Buffer` instances
+     * @param buffers array of Buffers
+     * @returns one Buffer from all the buffers
+     */
+    public static merge(...buffers: Array<Buffer>)
+    {
+        return new this(merge_arraybuffer(buffers.map((buffer) => buffer.buffer)))
     }
     /**
      * create a `Buffer` from a array buffer. These parameters are the same one from `DataView`
@@ -297,11 +306,11 @@ export class Buffer
         return this.writeArray("u8",text.split("").map((char) => char.charCodeAt(0) & 0xff))
     }
     /**
-     * read a struct from the buffer with a defintion. The generic has to be set by the user
+     * read a struct from the buffer with a definition
      * @param def the structure of the struct
      * @returns the struct
      */
-    public readStruct<T>(def: StructDefinition): T
+    public readStruct<Def extends StructDefinition>(def: Def): Struct<Def>
     {
         const struct: Record<string,any> = {}
         for(const [name,type] of Object.entries(def))
@@ -327,7 +336,7 @@ export class Buffer
                 continue
             }
         }
-        return struct as T
+        return struct as Struct<Def>
     }
     /**
      * fancy function for reading data by using a parameter `type` instead of methods

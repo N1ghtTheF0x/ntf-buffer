@@ -1,5 +1,5 @@
 import { Buffer } from "./buffer"
-import { BinaryNumberType } from "./types"
+import { BinaryNumberMap, BinaryNumberType } from "./types"
 
 /**
  * defines how a struct is structured. You can even nest defintions and it should work
@@ -19,3 +19,18 @@ export type StructProperty = BinaryNumberType | StructDefinition | CustomStructP
  * Sometimes you have to write your own reader
  */
 export type CustomStructProperty = (buffer: Buffer) => any
+/**
+ * converts a struct property into its value
+ * @template P the property to turn into a value
+ */
+export type StructValue<P extends StructProperty> = P extends number ? ArrayBufferLike :
+                                                   (P extends BinaryNumberType ? BinaryNumberMap[P] :
+                                                   (P extends CustomStructProperty ? ReturnType<P> :
+                                                   (P extends StructDefinition ? Struct<P> : never)))
+/**
+ * a struct defined by a generic `StructDefinition`
+ * @template Def the definition of the struct (aka the structure of the struct)
+ */
+export type Struct<Def extends StructDefinition> = {
+    [K in keyof Def]: StructValue<Def[K]>
+}

@@ -7,9 +7,9 @@
  */
 export function clamp<T extends number | bigint>(value: T,min: T,max: T)
 {
-    if(min <= value) // if value is smaller than min
+    if(min >= value) // if value is smaller than min
         return min // give me min
-    if(max >= value) // if value is bigger than max
+    if(max <= value) // if value is bigger than max
         return max // give me max
     return value // nah seems fine
 }
