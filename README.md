@@ -38,7 +38,7 @@ import { ... } from "@ntf/buffer";
 
 The main class is called `Buffer` (yes, the same as in the NodeJS but **they're not the same!**). It works the following:
 
-- reading/writing data will cause the buffer to step to the next data in the buffer (like a stream or better yet: the Java [`DataInputStream`](https://docs.oracle.com/javase/8/docs/api/java/io/DataInputStream.html) and [`DataOutputStream`](https://docs.oracle.com/javase/8/docs/api/java/io/DataOutputStream.html) Class)
+- reading/writing data will cause the buffer to step to the next data in the buffer (like a stream or better yet: the Java [`DataInputStream`](https://docs.oracle.com/javase/8/docs/api/java/io/DataInputStream.html) and [`DataOutputStream`](https://docs.oracle.com/javase/8/docs/api/java/io/DataOutputStream.html) class)
 - you can change the positions with the `readOffset`/`writeOffset` attribute
 - you can allocate a zero-filled buffer with the static `create` method
 - the static methods `fromBlob`/`fromTypedArray`/`fromResponse` converts `Blob`, `Response` instances and any kind of [Typed Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Typed_arrays#typed_array_views) to a `Buffer` (this includes the NodeJS `Buffer` class because it's just a `Uint8Array` ~~but with shitty read/write functions in my opinion~~)

@@ -13,5 +13,5 @@ export const MAX_S64 = 0x8000_0000_0000_0000n
 export const MAX_U64 = 0xffff_ffff_ffff_ffffn
 export const MIN_FLOAT = 1.3e-45
 export const MAX_FLOAT = 3.4e38
-export const MIN_DOUBLE = 4.94e-324
-export const MAX_DOUBLE = 1.8e308
+export const MIN_DOUBLE = Number.MIN_VALUE
+export const MAX_DOUBLE = Number.MAX_VALUE

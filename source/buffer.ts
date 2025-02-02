@@ -1,4 +1,5 @@
 import { MAX_DOUBLE, MAX_FLOAT, MAX_S16, MAX_S32, MAX_S64, MAX_S8, MAX_U16, MAX_U32, MAX_U64, MAX_U8, MIN_DOUBLE, MIN_FLOAT, MIN_S16, MIN_S32, MIN_S64, MIN_S8 } from "./limits"
+import { DESERIALSIZE_SYMBOL, ISerializable, SERIALIZE_SYMBOL } from "./serialize"
 import { StructDefinition, Struct } from "./struct"
 import { BinaryNumberMap, BinaryNumberType, Endianness, TypedArray, double, float, s16, s32, s64, s8, u16, u32, u64, u8 } from "./types"
 import { clamp, merge_arraybuffer, write_buffer } from "./utils"
@@ -8,6 +9,7 @@ import { clamp, merge_arraybuffer, write_buffer } from "./utils"
  */
 export class Buffer
 {
+//#region Properties
     /**
      * do not touch, here's where the magic happens :)
      */
@@ -49,6 +51,8 @@ export class Buffer
      * @param size the size of the buffer in bytes
      * @returns a buffer
      */
+//#endregion
+//#region Static methods
     public static create(size: number)
     {
         return new this(new ArrayBuffer(size))
@@ -95,10 +99,14 @@ export class Buffer
      * @param byteOffset an optional start from where to read/write (will slice the buffer)
      * @param byteLength an optional length of the buffer (will slice the buffer)
      */
+//#endregion
+//#region Constructor
     public constructor(buffer: ArrayBufferLike,byteOffset?: number,byteLength?: number)
     {
         this._view = new DataView(buffer,byteOffset,byteLength)
     }
+//#endregion
+//#region R/W methods
     // I'm not going to f**king comment these all. F**k you 🖕
     public readSignedByte(): s8
     {
@@ -221,8 +229,9 @@ export class Buffer
         return this
     }
     // ok here can I comment now
+//#region Buffer methods
     /**
-     * read an abitary array buffer from the buffer
+     * read an arbitrary array buffer from the buffer
      * @param size the size of the buffer in bytes
      * @returns a array buffer (not a buffer? (bro, just use `new Buffer(theReturnValueOfThisMethod)`))
      */
@@ -233,7 +242,7 @@ export class Buffer
         return buffer
     }
     /**
-     * write a abitary array buffer to this buffer
+     * write a arbitrary array buffer to this buffer
      * @param buffer the array buffer to use
      * @returns this 👇
      */
@@ -245,6 +254,8 @@ export class Buffer
         this._view = new DataView(target)
         return this
     }
+//#endregion
+//#region Array methods
     /**
      * read an array with `type` and size of `length` from this buffer
      * @param type the type of array
@@ -270,6 +281,8 @@ export class Buffer
             this.write(type,value)
         return this
     }
+//#endregion
+//#region String methods
     /**
      * read a ascii character from the buffer
      * @returns a character
@@ -305,6 +318,8 @@ export class Buffer
     {
         return this.writeArray("u8",text.split("").map((char) => char.charCodeAt(0) & 0xff))
     }
+//#endregion
+//#region Struct methods
     /**
      * read a struct from the buffer with a definition
      * @param def the structure of the struct
@@ -338,6 +353,8 @@ export class Buffer
         }
         return struct as Struct<Def>
     }
+//#endregion
+//#region Typed read/write methods
     /**
      * fancy function for reading data by using a parameter `type` instead of methods
      * @param type the type to read
@@ -405,4 +422,124 @@ export class Buffer
                 throw new TypeError(`unknown binary type '${type}'`)
         }
     }
+//#endregion
+//#region Methods
+    /**
+     * Map each byte with a new byte
+     * @param cb The mapper function with the signature: {@link Buffer.Mapper `(byte,offset,buffer) => byte`}
+     * @returns this 👇
+     */
+    public map(cb: Buffer.Mapper)
+    {
+        // save current offset
+        const wOffset = this.writeOffset, rOffset = this.readOffset
+        this.writeOffset = this.readOffset = 0
+        // go through each value from start to end
+        while(this.writable)
+        {
+            // read the byte
+            let value = this.readUnsignedByte()
+            // get the new byte
+            value = cb(this.readUnsignedByte(),this.readOffset,this)
+            // write the new byte
+            this.writeUnsignedByte(value)
+        }
+        // set offsets back to orignal
+        this.writeOffset = wOffset
+        this.readOffset = rOffset
+        return this
+    }
+//#endregion
+//#region Serialization methods
+    /**
+     * Serialize `object` and write to the buffer. The object needs to implement {@link ISerializable}
+     * @param object The object to serialize
+     * @returns this 👇
+     */
+    public writeObject<O extends ISerializable>(object: O)
+    {
+        return this.writeBuffer(object[SERIALIZE_SYMBOL]()._view.buffer)
+    }
+    /**
+     * Deserialize `object` by reading from the buffer. The object needs to implement {@link ISerializable}
+     * @param object The object to deserialize
+     * @returns The object deserialized
+     */
+    public readObject<O extends ISerializable>(object: O)
+    {
+        return object[DESERIALSIZE_SYMBOL](this)
+    }
+//#endregion
+//#region Symbols
+    public async *[Symbol.asyncIterator]()
+    {
+        while(this.readable)
+            yield this.readUnsignedByte()
+    }
+    public *[Symbol.iterator]()
+    {
+        while(this.readable)
+            yield this.readUnsignedByte()
+    }
+    public [Symbol.toPrimitive](hint: "number" | "string" | "default")
+    {
+        switch(hint)
+        {
+            default:
+            case "default":
+            case "string":
+                return this.toString()
+            case "number":
+                return this._view.byteLength
+        }
+    }
+    public get [Symbol.toStringTag](): "Buffer"
+    {
+        return "Buffer"
+    }
+    /**
+     * Returns a string representation of an object.
+     */
+    public toString(): Buffer.Stringified
+    {
+        return `Buffer<${this._view.byteLength}>`
+    }
+    /**
+     * Convert this Buffer into a valid JSON object, used by `JSON.stringify`
+     * @returns A valid {@link IBuffer JSON object}
+     */
+    public toJSON(): IBuffer
+    {
+        return {
+            type: "Buffer",
+            data: [...this]
+        }
+    }
+//#endregion
 }
+//#region Types
+export namespace Buffer
+{
+    /**
+     * The mapper function used in `Buffer.map`
+     * @param byte The current byte
+     * @param offset The offset of the current byte in the buffer
+     * @param buffer The buffer being read through
+     * @returns The new value of `byte`
+     */
+    export type Mapper = (byte: u8,offset: number,buffer: Buffer) => u8
+    /**
+     * The `Buffer.toString` type
+     */
+    export type Stringified = `Buffer<${number}>`
+}
+
+/**
+ * A interface representation of the `Buffer` class (it's the type of `Buffer.toJSON`). This has the same structure as the NodeJS's `Buffer.toJSON` method
+ */
+export interface IBuffer
+{
+    type: "Buffer"
+    data: Array<number>
+}
+//#endregion
