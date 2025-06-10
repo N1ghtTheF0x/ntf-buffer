@@ -1,13 +1,15 @@
-import { MAX_DOUBLE, MAX_FLOAT, MAX_S16, MAX_S32, MAX_S64, MAX_S8, MAX_U16, MAX_U32, MAX_U64, MAX_U8, MIN_DOUBLE, MIN_FLOAT, MIN_S16, MIN_S32, MIN_S64, MIN_S8 } from "./limits"
+import { MAX_DOUBLE, MAX_FLOAT, MAX_HALF, MAX_S16, MAX_S32, MAX_S64, MAX_S8, MAX_U16, MAX_U32, MAX_U64, MAX_U8, MIN_DOUBLE, MIN_FLOAT, MIN_HALF, MIN_S16, MIN_S32, MIN_S64, MIN_S8 } from "./limits"
+import { IReader } from "./reader"
 import { DESERIALSIZE_SYMBOL, ISerializable, SERIALIZE_SYMBOL } from "./serialize"
-import { StructDefinition, Struct } from "./struct"
-import { BinaryNumberMap, BinaryNumberType, Endianness, TypedArray, double, float, s16, s32, s64, s8, u16, u32, u64, u8 } from "./types"
+import { Struct, StructWriterDefinition, StructReaderDefinition } from "./struct"
+import { BinaryNumberMap, BinaryNumberType, Endianness, TypedArray, double, float, half, s16, s32, s64, s8, u16, u32, u64, u8 } from "./types"
 import { clamp, merge_arraybuffer, write_buffer } from "./utils"
+import { IWriter } from "./writer"
 
 /**
  * a better buffer class that that shitty NodeJS `Buffer` class
  */
-export class Buffer
+export class Buffer implements IReader, IWriter
 {
 //#region Properties
     /**
@@ -30,21 +32,10 @@ export class Buffer
      * the size of the buffer
      */
     public get byteLength(){return this._view.byteLength}
-    /**
-     * the current read position in the buffer
-     */
+    
     public readOffset = 0
-    /**
-     * the current write position in the buffer
-     */
     public writeOffset = 0
-    /**
-     * can we read on the buffer?
-     */
     public get readable(){return this.readOffset < this.byteLength}
-    /**
-     * can we write on the buffer
-     */
     public get writable(){return this.writeOffset < this.byteLength}
     /**
      * create a new `Buffer` instance with the size `size`
@@ -86,12 +77,12 @@ export class Buffer
     }
     /**
      * create a `Buffer` instance from multiple `Buffer` instances
-     * @param buffers array of Buffers
+     * @param buffers array of (Array)Buffers
      * @returns one Buffer from all the buffers
      */
-    public static merge(...buffers: Array<Buffer>)
+    public static merge(...buffers: Array<Buffer | ArrayBufferLike>)
     {
-        return new this(merge_arraybuffer(buffers.map((buffer) => buffer.buffer)))
+        return new this(merge_arraybuffer(buffers.map((buffer) => "buffer" in buffer ? buffer.buffer : buffer)))
     }
     /**
      * create a `Buffer` from a array buffer. These parameters are the same one from `DataView`
@@ -107,7 +98,7 @@ export class Buffer
     }
 //#endregion
 //#region R/W methods
-    // I'm not going to f**king comment these all. F**k you 🖕
+    // welp guess I did comment these in "reader.ts" and "writer.ts"...
     public readSignedByte(): s8
     {
         const value = this._view.getInt8(this.readOffset)
@@ -134,118 +125,120 @@ export class Buffer
     }
     public readSignedShort(): s16
     {
-        const value = this._view.getInt16(this.readOffset,this.endianness == "little")
+        const value = this._view.getInt16(this.readOffset,this.endianness === "little")
         this.readOffset += 2
         return value
     }
     public writeSignedShort(value: s16)
     {
-        this._view.setInt16(this.writeOffset,clamp(value,MIN_S16,MAX_S16),this.endianness == "little")
+        this._view.setInt16(this.writeOffset,clamp(value,MIN_S16,MAX_S16),this.endianness === "little")
         this.writeOffset += 2
         return this
     }
     public readUnsignedShort(): u16
     {
-        const value = this._view.getUint16(this.readOffset,this.endianness == "little")
+        const value = this._view.getUint16(this.readOffset,this.endianness === "little")
         this.readOffset += 2
         return value
     }
     public writeUnsignedShort(value: u16)
     {
-        this._view.setUint16(this.writeOffset,clamp(value,0,MAX_U16),this.endianness == "little")
+        this._view.setUint16(this.writeOffset,clamp(value,0,MAX_U16),this.endianness === "little")
         this.writeOffset += 2
         return this
     }
     public readSignedInteger(): s32
     {
-        const value = this._view.getInt32(this.readOffset,this.endianness == "little")
+        const value = this._view.getInt32(this.readOffset,this.endianness === "little")
         this.readOffset += 4
         return value
     }
     public writeSignedInteger(value: s32)
     {
-        this._view.setInt32(this.writeOffset,clamp(value,MIN_S32,MAX_S32),this.endianness == "little")
+        this._view.setInt32(this.writeOffset,clamp(value,MIN_S32,MAX_S32),this.endianness === "little")
         this.writeOffset += 4
         return this
     }
     public readUnsignedInteger(): u32
     {
-        const value = this._view.getUint32(this.readOffset,this.endianness == "little")
+        const value = this._view.getUint32(this.readOffset,this.endianness === "little")
         this.readOffset += 4
         return value
     }
     public writeUnsignedInteger(value: u32)
     {
-        this._view.setUint32(this.writeOffset,clamp(value,0,MAX_U32),this.endianness == "little")
+        this._view.setUint32(this.writeOffset,clamp(value,0,MAX_U32),this.endianness === "little")
         this.writeOffset += 4
         return this
     }
     public readSignedLong(): s64
     {
-        const value = this._view.getBigInt64(this.readOffset,this.endianness == "little")
+        const value = this._view.getBigInt64(this.readOffset,this.endianness === "little")
         this.readOffset += 8
         return value
     }
     public writeSignedLong(value: s64)
     {
-        this._view.setBigInt64(this.writeOffset,clamp(value,MIN_S64,MAX_S64),this.endianness == "little")
+        this._view.setBigInt64(this.writeOffset,clamp(value,MIN_S64,MAX_S64),this.endianness === "little")
         this.writeOffset += 8
         return this
     }
     public readUnsignedLong(): u64
     {
-        const value = this._view.getBigUint64(this.readOffset,this.endianness == "little")
+        const value = this._view.getBigUint64(this.readOffset,this.endianness === "little")
         this.readOffset += 8
         return value
     }
     public writeUnsignedLong(value: u64)
     {
-        this._view.setBigUint64(this.writeOffset,clamp(value,0n,MAX_U64),this.endianness == "little")
+        this._view.setBigUint64(this.writeOffset,clamp(value,0n,MAX_U64),this.endianness === "little")
         this.writeOffset += 8
+        return this
+    }
+    public readHalf(): half
+    {
+        const value = this._view.getFloat16(this.readOffset,this.endianness === "little")
+        this.readOffset += 2
+        return value
+    }
+    public writeHalf(value: half)
+    {
+        this._view.setFloat16(this.writeOffset,clamp(value,MIN_HALF,MAX_HALF),this.endianness === "little")
+        this.writeOffset += 2
         return this
     }
     public readFloat(): float
     {
-        const value = this._view.getFloat32(this.readOffset,this.endianness == "little")
+        const value = this._view.getFloat32(this.readOffset,this.endianness === "little")
         this.readOffset += 4
         return value
     }
     public writeFloat(value: float)
     {
-        this._view.setFloat32(this.writeOffset,clamp(value,MIN_FLOAT,MAX_FLOAT),this.endianness == "little")
+        this._view.setFloat32(this.writeOffset,clamp(value,MIN_FLOAT,MAX_FLOAT),this.endianness === "little")
         this.writeOffset += 4
         return this
     }
     public readDouble(): double
     {
-        const value = this._view.getFloat64(this.readOffset,this.endianness == "little")
+        const value = this._view.getFloat64(this.readOffset,this.endianness === "little")
         this.readOffset += 8
         return value
     }
     public writeDouble(value: double)
     {
-        this._view.setFloat64(this.writeOffset,clamp(value,MIN_DOUBLE,MAX_DOUBLE),this.endianness == "little")
+        this._view.setFloat64(this.writeOffset,clamp(value,MIN_DOUBLE,MAX_DOUBLE),this.endianness === "little")
         this.writeOffset += 8
         return this
     }
-    // ok here can I comment now
+    // no comments found here
 //#region Buffer methods
-    /**
-     * read an arbitrary array buffer from the buffer
-     * @param size the size of the buffer in bytes
-     * @returns a array buffer (not a buffer? (bro, just use `new Buffer(theReturnValueOfThisMethod)`))
-     */
     public readBuffer(size: number)
     {
         const buffer = this._view.buffer.slice(this.readOffset,this.readOffset + size)
         this.readOffset += size
         return buffer
     }
-    /**
-     * write a arbitrary array buffer to this buffer
-     * @param buffer the array buffer to use
-     * @returns this 👇
-     */
     public writeBuffer(buffer: ArrayBufferLike)
     {
         const target = this.buffer
@@ -256,12 +249,6 @@ export class Buffer
     }
 //#endregion
 //#region Array methods
-    /**
-     * read an array with `type` and size of `length` from this buffer
-     * @param type the type of array
-     * @param length the length of the array
-     * @returns the array
-     */
     public readArray<T extends BinaryNumberType>(type: T,length: number): Array<BinaryNumberMap[T]>
     {
         const arr: Array<BinaryNumberMap[T]> = []
@@ -269,12 +256,6 @@ export class Buffer
             arr.push(this.read(type))
         return arr
     }
-    /**
-     * write an array `arr` as `type` to this buffer
-     * @param type the type of arry
-     * @param arr the array itself
-     * @returns this 👇
-     */
     public writeArray<T extends BinaryNumberType>(type: T,arr: Array<BinaryNumberMap[T]>)
     {
         for(const value of arr)
@@ -283,49 +264,25 @@ export class Buffer
     }
 //#endregion
 //#region String methods
-    /**
-     * read a ascii character from the buffer
-     * @returns a character
-     */
     public readChar()
     {
         return String.fromCharCode(this.readUnsignedByte())
     }
-    /**
-     * write `char` into the buffer
-     * @param char the character to write
-     * @returns this 👇
-     */
     public writeChar(char: string)
     {
         return this.writeUnsignedByte(char.charCodeAt(0))
     }
-    /**
-     * read an ascii string with the length `length`
-     * @param length the length of the text
-     * @returns a string in ascii
-     */
     public readASCII(length: number)
     {
         return String.fromCharCode(...this.readArray("u8",length))
     }
-    /**
-     * write an ascii text `text` into the buffer
-     * @param text the text in ascii (will convert it into ascii, so UTF-8 shit gets removed)
-     * @returns this 👇
-     */
     public writeASCII(text: string)
     {
         return this.writeArray("u8",text.split("").map((char) => char.charCodeAt(0) & 0xff))
     }
 //#endregion
 //#region Struct methods
-    /**
-     * read a struct from the buffer with a definition
-     * @param def the structure of the struct
-     * @returns the struct
-     */
-    public readStruct<Def extends StructDefinition>(def: Def): Struct<Def>
+    public readStruct<Def extends StructReaderDefinition>(def: Def): Struct<Def>
     {
         const struct: Record<string,any> = {}
         for(const [name,type] of Object.entries(def))
@@ -353,13 +310,31 @@ export class Buffer
         }
         return struct as Struct<Def>
     }
+    public writeStruct<Def extends StructWriterDefinition>(def: Def,value: Struct<Def>)
+    {
+        for(const [name,type] of Object.entries(def))
+        {
+            const v = value[name]
+            if(typeof type == "string")
+            {
+                this.write(type,v as number)
+                continue
+            }
+            if(typeof type == "number")
+            {
+                this.writeBuffer(v as ArrayBuffer)
+                continue
+            }
+            if(typeof type == "object")
+            {
+                this.writeStruct(type,v as any)
+                continue
+            }
+        }
+        return this
+    }
 //#endregion
 //#region Typed read/write methods
-    /**
-     * fancy function for reading data by using a parameter `type` instead of methods
-     * @param type the type to read
-     * @returns the value as the type
-     */
     public read<T extends BinaryNumberType>(type: T): BinaryNumberMap[T]
     {
         switch(type)
@@ -380,6 +355,8 @@ export class Buffer
                 return this.readSignedLong() as BinaryNumberMap[T]
             case "u64":
                 return this.readUnsignedLong() as BinaryNumberMap[T]
+            case "half":
+                return this.readHalf() as BinaryNumberMap[T]
             case "float":
                 return this.readFloat() as BinaryNumberMap[T]
             case "double":
@@ -388,12 +365,6 @@ export class Buffer
                 throw new TypeError(`unknown binary type '${type}'`)
         }
     }
-    /**
-     * fancy method to write data with paramters instead of method chaining
-     * @param type the type of the value
-     * @param value the value
-     * @returns this 👇
-     */
     public write<T extends BinaryNumberType>(type: T,value: BinaryNumberMap[T])
     {
         switch(type)
@@ -414,6 +385,8 @@ export class Buffer
                 return this.writeSignedLong(value as bigint)
             case "u64":
                 return this.writeUnsignedLong(value as bigint)
+            case "half":
+                return this.writeHalf(value as number)
             case "float":
                 return this.writeFloat(value as number)
             case "double":
@@ -424,6 +397,7 @@ export class Buffer
     }
 //#endregion
 //#region Methods
+    // jk, here are comments
     /**
      * Map each byte with a new byte
      * @param cb The mapper function with the signature: {@link Buffer.Mapper `(byte,offset,buffer) => byte`}
@@ -451,20 +425,10 @@ export class Buffer
     }
 //#endregion
 //#region Serialization methods
-    /**
-     * Serialize `object` and write to the buffer. The object needs to implement {@link ISerializable}
-     * @param object The object to serialize
-     * @returns this 👇
-     */
     public writeObject<O extends ISerializable>(object: O)
     {
         return this.writeBuffer(object[SERIALIZE_SYMBOL]()._view.buffer)
     }
-    /**
-     * Deserialize `object` by reading from the buffer. The object needs to implement {@link ISerializable}
-     * @param object The object to deserialize
-     * @returns The object deserialized
-     */
     public readObject<O extends ISerializable>(object: O)
     {
         return object[DESERIALSIZE_SYMBOL](this)
