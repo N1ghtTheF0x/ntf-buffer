@@ -47,7 +47,7 @@ The main class is called `Buffer` (yes, the same as in the NodeJS but **they're 
 import { Buffer } from "@ntf/buffer";
 
 const myVeryCoolBuffer = Buffer.create(100); // creates a zero-filled buffer with the size of 100 bytes
-const someRandomAssBuffer = await Buffer.fromBlob(someRandomAssBlob) // this static method and "fromResponse" returns a Promise<Buffer>
+const someRandomAssBuffer = await Buffer.fromAsync(someRandomAssBlobOrResponse) // this static method returns a Promise<Buffer>
 ```
 
 ### I'm on NodeJS and that shitty class replaces the NodeJS Buffer class!!!!11!!1
