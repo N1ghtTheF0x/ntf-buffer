@@ -3,13 +3,13 @@
   "version": "1.2.0",
   "description": "Another buffer library",
   "files": ["dist"],
-  "main": "./dist/index.cjs",
+  "main": "./dist/index.js",
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.cts",
     "exports": {
       "require": {
         "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
+        "default": "./dist/index.js"
       },
       "import": {
         "types": "./dist/index.d.mts",
@@ -18,9 +18,9 @@
     },
   "scripts": {
     "test": "tsx --tsconfig tsconfig.test.json test.ts",
-    "build:prod": "tsup ./source/index.ts --dts --format esm,cjs",
-    "build": "tsup ./source/index.ts --dts --format esm,cjs --sourcemap",
-    "prepublishOnly": "npm run build"
+    "build:prod": "tsup ./source/index.ts --dts --format esm,cjs --clean",
+    "build": "tsup ./source/index.ts --dts --format esm,cjs --clean --sourcemap",
+    "prepublishOnly": "npm run build:prod"
   },
   "repository": {
     "type": "git",
