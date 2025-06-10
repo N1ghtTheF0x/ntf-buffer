@@ -144,3 +144,7 @@ export type TypedArrayMap = {
     "float": Float32Array
     "double": Float64Array
 }
+export interface IAsyncArrayBuffer
+{
+    arrayBuffer(): Promise<ArrayBuffer>
+}

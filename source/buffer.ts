@@ -2,7 +2,7 @@ import { MAX_DOUBLE, MAX_FLOAT, MAX_HALF, MAX_S16, MAX_S32, MAX_S64, MAX_S8, MAX
 import { IReader } from "./reader"
 import { DESERIALSIZE_SYMBOL, ISerializable, SERIALIZE_SYMBOL } from "./serialize"
 import { Struct, StructWriterDefinition, StructReaderDefinition } from "./struct"
-import { BinaryNumberMap, BinaryNumberType, Endianness, TypedArray, double, float, half, s16, s32, s64, s8, u16, u32, u64, u8 } from "./types"
+import { BinaryNumberMap, BinaryNumberType, Endianness, IAsyncArrayBuffer, TypedArray, double, float, half, s16, s32, s64, s8, u16, u32, u64, u8 } from "./types"
 import { clamp, merge_arraybuffer, write_buffer } from "./utils"
 import { IWriter } from "./writer"
 
@@ -49,22 +49,13 @@ export class Buffer implements IReader, IWriter
         return new this(new ArrayBuffer(size))
     }
     /**
-     * create a `Buffer` instance from a response. This method is async!
-     * @param response the response object from `fetch` or whatever
+     * create a `Buffer` instance from a response/blob. This method is async!
+     * @param response the response object from `fetch`, a blob or whatever implements {@link IAsyncArrayBuffer}
      * @returns a buffer (shocking)
      */
-    public static async fromResponse(response: Response)
+    public static async fromAsync(response: IAsyncArrayBuffer)
     {
         return new this(await response.arrayBuffer())
-    }
-    /**
-     * create a `Buffer` instance from a blob. This method is async!
-     * @param blob the blob from the drain
-     * @returns a buffer but not a NodeJS `Buffer` instance
-     */
-    public static async fromBlob(blob: Blob)
-    {
-        return new this(await blob.arrayBuffer())
     }
     /**
      * create a `Buffer` instance from a typed array. This includes the NodeJS `Buffer` class because it's just a `Uint8Array` in disguise

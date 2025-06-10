@@ -18,7 +18,8 @@
     },
   "scripts": {
     "test": "tsx --tsconfig tsconfig.test.json test.ts",
-    "build": "pkgroll --src source",
+    "build:prod": "tsup ./source/index.ts --dts --format esm,cjs",
+    "build": "tsup ./source/index.ts --dts --format esm,cjs --sourcemap",
     "prepublishOnly": "npm run build"
   },
   "repository": {
@@ -38,6 +39,6 @@
     "typescript": "latest",
     "tsx": "latest",
     "express": "latest",
-    "pkgroll": "latest"
+    "tsup": "latest"
   }
 }
