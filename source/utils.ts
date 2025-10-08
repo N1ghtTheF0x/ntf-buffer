@@ -5,7 +5,7 @@
  * @param max the value to return if `value` is bigger than this
  * @returns either `value`, `min` or `max`
  */
-export function clamp<T extends number | bigint>(value: T,min: T,max: T)
+export function clamp<T extends number | bigint>(value: T,min: T,max: T): T
 {
     if(min >= value) // if value is smaller than min
         return min // give me min
@@ -40,7 +40,7 @@ export function merge_arraybuffer(buffers: Array<ArrayBufferLike>): ArrayBuffer
  * @param value the value to write to the target
  * @param offset some offset
  */
-export function write_buffer(target: ArrayBufferLike,value: ArrayBufferLike,offset: number)
+export function write_buffer(target: ArrayBufferLike,value: ArrayBufferLike,offset: number): void
 {
     /*
         alright it works like this:
