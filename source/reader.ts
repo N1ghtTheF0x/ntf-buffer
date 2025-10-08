@@ -1,6 +1,6 @@
 import { ISerializable } from "./serialize"
 import { Struct, StructReaderDefinition } from "./struct"
-import { BinaryNumberMap, BinaryNumberType, double, float, half, s16, s32, s64, s8, u16, u32, u64, u8 } from "./types"
+import { BinaryNumberMap, BinaryNumberType, double, float, half, s16, s24, s32, s64, s8, u16, u24, u32, u64, u8 } from "./types"
 
 /**
  * Interface for reading binary data
@@ -31,6 +31,14 @@ export interface IReader
      * Read a unsigned short
      */
     readUnsignedShort(): u16
+    /**
+     * Read a signed 24-bit number
+     */
+    readSigned24(): s24
+    /**
+     * Read a unsigned 24-bit number
+     */
+    readUnsigned24(): u24
     /**
      * Read a signed integer
      */

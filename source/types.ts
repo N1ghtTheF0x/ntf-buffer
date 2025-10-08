@@ -1,4 +1,8 @@
 // I know that this doesn't make a difference because TypeScript converts them to the 'number' or 'bigint' type but idgaf
+
+import { MAX_S24, MAX_U24, MIN_S24 } from "./limits"
+import { clamp } from "./utils"
+
 /**
  * Signed Byte
  */
@@ -35,6 +39,20 @@ export type u16 = Uint16Array[0]
 export function u16(v: u16): ArrayBuffer
 {
     return new Uint16Array([v]).buffer
+}
+
+export type s24 = number
+
+export function s24(v: s24): ArrayBuffer
+{
+    return s32(clamp(v,MIN_S24,MAX_S24)).slice(0,3)
+}
+
+export type u24 = number
+
+export function u24(v: u32): ArrayBuffer
+{
+    return u32(clamp(v,0,MAX_U24)).slice(0,3)
 }
 /**
  * Signed Integer
@@ -112,6 +130,8 @@ export type BinaryNumberMap = {
     "u8": u8
     "s16": s16
     "u16": u16
+    "s24": s24
+    "u24": u24
     "s32": s32
     "u32": u32
     "s64": s64

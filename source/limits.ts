@@ -2,9 +2,15 @@
 export const MIN_S8 = -0x7f
 export const MAX_S8 = 0x80
 export const MAX_U8 = 0xff
+export const MIN_S12 = -0x7ff
+export const MAX_S12 = 0x800
+export const MAX_U12 = 0xfff
 export const MIN_S16 = -0x7fff
 export const MAX_S16 = 0x8000
 export const MAX_U16 = 0xffff
+export const MIN_S24 = -0x7fffff
+export const MAX_S24 = 0x800000
+export const MAX_U24 = 0xffffff
 export const MIN_S32 = -0x7fff_ffff
 export const MAX_S32 = 0x8000_0000
 export const MAX_U32 = 0xffff_ffff

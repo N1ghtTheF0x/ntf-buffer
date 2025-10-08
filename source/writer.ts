@@ -1,6 +1,6 @@
 import { ISerializable } from "./serialize"
 import { Struct, StructWriterDefinition } from "./struct"
-import { BinaryNumberMap, BinaryNumberType, double, float, half, s16, s32, s64, s8, u16, u32, u64, u8 } from "./types"
+import { BinaryNumberMap, BinaryNumberType, double, float, half, s16, s24, s32, s64, s8, u16, u24, u32, u64, u8 } from "./types"
 
 /**
  * Interface for writing binary data
@@ -39,6 +39,18 @@ export interface IWriter
      * @returns this 👇
      */
     writeUnsignedShort(value: u16): this
+    /**
+     * Write a signed 24-bit number
+     * @param value A signed 24-bit number that gets clamped
+     * @returns this 👇
+     */
+    writeSigned24(value: s24): this
+    /**
+     * Write a unsigned 24-bit number
+     * @param value A unsigned 24-bit number that gets clamped
+     * @returns this 👇
+     */
+    writeUnsigned24(value: u24): this
     /**
      * Write a signed integer
      * @param value A signed integer that gets clamped
