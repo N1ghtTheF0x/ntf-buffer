@@ -1,3 +1,5 @@
+import { AnyNumber } from "./types"
+
 /**
  * basic clamp function, nothing special
  * @param value the value to clamp
@@ -5,7 +7,7 @@
  * @param max the value to return if `value` is bigger than this
  * @returns either `value`, `min` or `max`
  */
-export function clamp<T extends number | bigint>(value: T,min: T,max: T): T
+export function clamp<T extends AnyNumber>(value: T,min: T,max: T): T
 {
     if(min >= value) // if value is smaller than min
         return min // give me min
@@ -19,7 +21,7 @@ export function clamp<T extends number | bigint>(value: T,min: T,max: T): T
  * @param buffers array of array buffers
  * @returns one single array buffer from all the array buffers in the array
  */
-export function merge_arraybuffer(buffers: Array<ArrayBufferLike>): ArrayBuffer
+export function mergeArraybuffer(...buffers: Array<ArrayBufferLike>): ArrayBuffer
 {
     // calculate the size of the resulting buffer
     const size = buffers.reduce((a,b) => a + b.byteLength,0)
@@ -40,7 +42,7 @@ export function merge_arraybuffer(buffers: Array<ArrayBufferLike>): ArrayBuffer
  * @param value the value to write to the target
  * @param offset some offset
  */
-export function write_buffer(target: ArrayBufferLike,value: ArrayBufferLike,offset: number): void
+export function writeBuffer(target: ArrayBufferLike,value: ArrayBufferLike,offset: number): void
 {
     /*
         alright it works like this:

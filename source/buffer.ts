@@ -2,8 +2,8 @@ import { MAX_DOUBLE, MAX_FLOAT, MAX_HALF, MAX_S16, MAX_S24, MAX_S32, MAX_S64, MA
 import { IReader } from "./reader"
 import { DESERIALSIZE_SYMBOL, ISerializable, SERIALIZE_SYMBOL } from "./serialize"
 import { Struct, StructWriterDefinition, StructReaderDefinition } from "./struct"
-import { BinaryNumberMap, BinaryNumberType, Endianness, IAsyncArrayBuffer, TypedArray, double, float, half, s16, s24, s32, s64, s8, u16, u24, u32, u64, u8 } from "./types"
-import { clamp, merge_arraybuffer, write_buffer } from "./utils"
+import { AnyNumber, BinaryNumberMap, BinaryNumberType, Endianness, IAsyncArrayBuffer, TypedArray, double, float, half, s16, s24, s32, s64, s8, u16, u24, u32, u64, u8 } from "./types"
+import { clamp, mergeArraybuffer, writeBuffer } from "./utils"
 import { IWriter } from "./writer"
 
 /**
@@ -73,7 +73,7 @@ export class Buffer implements IReader, IWriter
      */
     public static merge(...buffers: Array<Buffer | ArrayBufferLike>): Buffer
     {
-        return new this(merge_arraybuffer(buffers.map((buffer) => "buffer" in buffer ? buffer.buffer : buffer)))
+        return new this(mergeArraybuffer(...buffers.map((buffer) => "buffer" in buffer ? buffer.buffer : buffer)))
     }
     /**
      * create a `Buffer` from a array buffer. These parameters are the same one from `DataView`
@@ -96,9 +96,9 @@ export class Buffer implements IReader, IWriter
         this.readOffset += 1
         return value
     }
-    public writeSignedByte(value: s8): this
+    public writeSignedByte(value: AnyNumber): this
     {
-        this._view.setInt8(this.writeOffset,clamp(value,MIN_S8,MAX_S8))
+        this._view.setInt8(this.writeOffset,clamp(Number(value),MIN_S8,MAX_S8))
         this.writeOffset += 1
         return this
     }
@@ -108,9 +108,9 @@ export class Buffer implements IReader, IWriter
         this.readOffset += 1
         return value
     }
-    public writeUnsignedByte(value: u8): this
+    public writeUnsignedByte(value: AnyNumber): this
     {
-        this._view.setUint8(this.writeOffset,clamp(value,0,MAX_U8))
+        this._view.setUint8(this.writeOffset,clamp(Number(value),0,MAX_U8))
         this.writeOffset += 1
         return this
     }
@@ -120,9 +120,9 @@ export class Buffer implements IReader, IWriter
         this.readOffset += 2
         return value
     }
-    public writeSignedShort(value: s16): this
+    public writeSignedShort(value: AnyNumber): this
     {
-        this._view.setInt16(this.writeOffset,clamp(value,MIN_S16,MAX_S16),this.endianness === "little")
+        this._view.setInt16(this.writeOffset,clamp(Number(value),MIN_S16,MAX_S16),this.endianness === "little")
         this.writeOffset += 2
         return this
     }
@@ -132,9 +132,9 @@ export class Buffer implements IReader, IWriter
         this.readOffset += 2
         return value
     }
-    public writeUnsignedShort(value: u16): this
+    public writeUnsignedShort(value: AnyNumber): this
     {
-        this._view.setUint16(this.writeOffset,clamp(value,0,MAX_U16),this.endianness === "little")
+        this._view.setUint16(this.writeOffset,clamp(Number(value),0,MAX_U16),this.endianness === "little")
         this.writeOffset += 2
         return this
     }
@@ -157,9 +157,9 @@ export class Buffer implements IReader, IWriter
         const c = this.readUnsignedByte()
         return this.endianness === "little" ? (a + (b << 8) + (c << 16)) : ((a << 16) + (b << 8) + c)
     }
-    public writeSigned24(value: u24): this
+    public writeSigned24(value: AnyNumber): this
     {
-        return this.writeUnsigned24(clamp(value,MIN_S24,MAX_S24))
+        return this.writeUnsigned24(clamp(Number(value),MIN_S24,MAX_S24))
     }
     public readSignedInteger(): s32
     {
@@ -167,9 +167,9 @@ export class Buffer implements IReader, IWriter
         this.readOffset += 4
         return value
     }
-    public writeSignedInteger(value: s32): this
+    public writeSignedInteger(value: AnyNumber): this
     {
-        this._view.setInt32(this.writeOffset,clamp(value,MIN_S32,MAX_S32),this.endianness === "little")
+        this._view.setInt32(this.writeOffset,clamp(Number(value),MIN_S32,MAX_S32),this.endianness === "little")
         this.writeOffset += 4
         return this
     }
@@ -179,9 +179,9 @@ export class Buffer implements IReader, IWriter
         this.readOffset += 4
         return value
     }
-    public writeUnsignedInteger(value: u32): this
+    public writeUnsignedInteger(value: AnyNumber): this
     {
-        this._view.setUint32(this.writeOffset,clamp(value,0,MAX_U32),this.endianness === "little")
+        this._view.setUint32(this.writeOffset,clamp(Number(value),0,MAX_U32),this.endianness === "little")
         this.writeOffset += 4
         return this
     }
@@ -191,9 +191,9 @@ export class Buffer implements IReader, IWriter
         this.readOffset += 8
         return value
     }
-    public writeSignedLong(value: s64): this
+    public writeSignedLong(value: AnyNumber): this
     {
-        this._view.setBigInt64(this.writeOffset,clamp(value,MIN_S64,MAX_S64),this.endianness === "little")
+        this._view.setBigInt64(this.writeOffset,clamp(BigInt(value),MIN_S64,MAX_S64),this.endianness === "little")
         this.writeOffset += 8
         return this
     }
@@ -203,9 +203,9 @@ export class Buffer implements IReader, IWriter
         this.readOffset += 8
         return value
     }
-    public writeUnsignedLong(value: u64): this
+    public writeUnsignedLong(value: AnyNumber): this
     {
-        this._view.setBigUint64(this.writeOffset,clamp(value,0n,MAX_U64),this.endianness === "little")
+        this._view.setBigUint64(this.writeOffset,clamp(BigInt(value),0n,MAX_U64),this.endianness === "little")
         this.writeOffset += 8
         return this
     }
@@ -215,9 +215,9 @@ export class Buffer implements IReader, IWriter
         this.readOffset += 2
         return value
     }
-    public writeHalf(value: half): this
+    public writeHalf(value: AnyNumber): this
     {
-        this._view.setFloat16(this.writeOffset,clamp(value,MIN_HALF,MAX_HALF),this.endianness === "little")
+        this._view.setFloat16(this.writeOffset,clamp(Number(value),MIN_HALF,MAX_HALF),this.endianness === "little")
         this.writeOffset += 2
         return this
     }
@@ -227,9 +227,9 @@ export class Buffer implements IReader, IWriter
         this.readOffset += 4
         return value
     }
-    public writeFloat(value: float): this
+    public writeFloat(value: AnyNumber): this
     {
-        this._view.setFloat32(this.writeOffset,clamp(value,MIN_FLOAT,MAX_FLOAT),this.endianness === "little")
+        this._view.setFloat32(this.writeOffset,clamp(Number(value),MIN_FLOAT,MAX_FLOAT),this.endianness === "little")
         this.writeOffset += 4
         return this
     }
@@ -256,7 +256,7 @@ export class Buffer implements IReader, IWriter
     public writeBuffer(buffer: ArrayBufferLike): this
     {
         const target = this.buffer
-        write_buffer(target,buffer,this.writeOffset)
+        writeBuffer(target,buffer,this.writeOffset)
         this.writeOffset += buffer.byteLength
         this._view = new DataView(target)
         return this

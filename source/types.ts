@@ -4,119 +4,137 @@ import { MAX_S24, MAX_U24, MIN_S24 } from "./limits"
 import { clamp } from "./utils"
 
 /**
+ * Represents any kind of number that is available in JavaScript
+ */
+export type AnyNumber = number | bigint
+
+/**
+ * "Converts" an typed array to big endian, aka reverse
+ * @param array A typed array
+ * @returns `array` but reversed (big endian)
+ */
+export const bigEndian = <T extends TypedArray>(array: T) => array.reverse() as T
+
+/**
  * Signed Byte
  */
 export type s8 = Int8Array[0]
 
-export function s8(v: s8): ArrayBuffer
+export function s8(v: AnyNumber): ArrayBuffer
 {
-    return new Int8Array([v]).buffer
+    return new Int8Array([Number(v)]).buffer
 }
 /**
  * Unsigned Byte
  */
 export type u8 = Uint8Array[0] | Uint8ClampedArray[0]
 
-export function u8(v: u8,clamped = false): ArrayBuffer
+export function u8(v: AnyNumber,clamped = false): ArrayBuffer
 {
     // bro this works??
-    return new (clamped ? Uint8ClampedArray : Uint8Array)([v]).buffer
+    return new (clamped ? Uint8ClampedArray : Uint8Array)([Number(v)]).buffer
 }
 /**
  * Signed Short
  */
 export type s16 = Int16Array[0]
 
-export function s16(v: s16): ArrayBuffer
+export function s16(v: AnyNumber): ArrayBuffer
 {
-    return new Int16Array([v]).buffer
+    return new Int16Array([Number(v)]).buffer
 }
 /**
  * Unsigned Short
  */
 export type u16 = Uint16Array[0]
 
-export function u16(v: u16): ArrayBuffer
+export function u16(v: AnyNumber): ArrayBuffer
 {
-    return new Uint16Array([v]).buffer
+    return new Uint16Array([Number(v)]).buffer
 }
 
+/**
+ * Signed 24-bit number
+ */
 export type s24 = number
 
-export function s24(v: s24): ArrayBuffer
+export function s24(v: AnyNumber): ArrayBuffer
 {
-    return s32(clamp(v,MIN_S24,MAX_S24)).slice(0,3)
+    return s32(clamp(Number(v),MIN_S24,MAX_S24)).slice(0,3)
 }
 
+/**
+ * Unsigned 24-bit number
+ */
 export type u24 = number
 
-export function u24(v: u32): ArrayBuffer
+export function u24(v: AnyNumber): ArrayBuffer
 {
-    return u32(clamp(v,0,MAX_U24)).slice(0,3)
+    return u32(clamp(Number(v),0,MAX_U24)).slice(0,3)
 }
 /**
  * Signed Integer
  */
 export type s32 = Int32Array[0]
 
-export function s32(v: s32): ArrayBuffer
+export function s32(v: AnyNumber): ArrayBuffer
 {
-    return new Int32Array([v]).buffer
+    return new Int32Array([Number(v)]).buffer
 }
 /**
  * Unsigned Integer
  */
 export type u32 = Uint32Array[0]
 
-export function u32(v: u32): ArrayBuffer
+export function u32(v: AnyNumber): ArrayBuffer
 {
-    return new Uint32Array([v]).buffer
+    return new Uint32Array([Number(v)]).buffer
 }
 /**
  * Signed Long
  */
 export type s64 = BigInt64Array[0]
 
-export function s64(v: s64): ArrayBuffer
+export function s64(v: AnyNumber): ArrayBuffer
 {
-    return new BigInt64Array([v]).buffer
+    return new BigInt64Array([BigInt(v)]).buffer
 }
 /**
  * Unsigned Long
  */
 export type u64 = BigUint64Array[0]
 
-export function u64(v: u64): ArrayBuffer
+export function u64(v: AnyNumber): ArrayBuffer
 {
-    return new BigUint64Array([v]).buffer
+    return new BigUint64Array([BigInt(v)]).buffer
 }
 
 /**
- * IEEE 754 half precision (16-bit)
+ * IEEE 754 Half precision (16-bit)
  */
 export type half = Float16Array[0]
 
-export function half(v: half): ArrayBuffer
+export function half(v: AnyNumber): ArrayBuffer
 {
-    return new Float16Array([v]).buffer
+    return new Float16Array([Number(v)]).buffer
 }
 /**
  * IEEE 754 Single precision (32-bit)
  */
 export type float = Float32Array[0]
 
-export function float(v: float): ArrayBuffer
+export function float(v: AnyNumber): ArrayBuffer
 {
-    return new Float32Array([v]).buffer
+    return new Float32Array([Number(v)]).buffer
 }
 /**
  * IEEE 754 Double precision (64-bit)
  */
 export type double = Float64Array[0]
 
-export function double(v: double): ArrayBuffer
+export function double(v: AnyNumber): ArrayBuffer
 {
-    return new Float64Array([v]).buffer
+    return new Float64Array([Number(v)]).buffer
 }
 /**
  * the byte order of the binary data
@@ -164,6 +182,7 @@ export type TypedArrayMap = {
     "float": Float32Array
     "double": Float64Array
 }
+
 export interface IAsyncArrayBuffer
 {
     arrayBuffer(): Promise<ArrayBuffer>

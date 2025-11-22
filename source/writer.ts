@@ -1,6 +1,6 @@
 import { ISerializable } from "./serialize"
 import { Struct, StructWriterDefinition } from "./struct"
-import { BinaryNumberMap, BinaryNumberType, double, float, half, s16, s24, s32, s64, s8, u16, u24, u32, u64, u8 } from "./types"
+import { BinaryNumberMap, BinaryNumberType, AnyNumber } from "./types"
 
 /**
  * Interface for writing binary data
@@ -20,79 +20,79 @@ export interface IWriter
      * @param value A signed byte that gets clamped
      * @returns this 👇
      */
-    writeSignedByte(value: s8): this
+    writeSignedByte(value: AnyNumber): this
     /**
      * Write a unsigned byte
      * @param value A unsigned byte that gets clamped
      * @returns this 👇
      */
-    writeUnsignedByte(value: u8): this
+    writeUnsignedByte(value: AnyNumber): this
     /**
      * Write a signed short
      * @param value A signed short that gets clamped
      * @returns this 👇
      */
-    writeSignedShort(value: s16): this
+    writeSignedShort(value: AnyNumber): this
     /**
      * Write a unsigned short
      * @param value A unsigned short that gets clamped
      * @returns this 👇
      */
-    writeUnsignedShort(value: u16): this
+    writeUnsignedShort(value: AnyNumber): this
     /**
      * Write a signed 24-bit number
      * @param value A signed 24-bit number that gets clamped
      * @returns this 👇
      */
-    writeSigned24(value: s24): this
+    writeSigned24(value: AnyNumber): this
     /**
      * Write a unsigned 24-bit number
      * @param value A unsigned 24-bit number that gets clamped
      * @returns this 👇
      */
-    writeUnsigned24(value: u24): this
+    writeUnsigned24(value: AnyNumber): this
     /**
      * Write a signed integer
      * @param value A signed integer that gets clamped
      * @returns this 👇
      */
-    writeSignedInteger(value: s32): this
+    writeSignedInteger(value: AnyNumber): this
     /**
      * Write a unsigned integer
      * @param value A unsigned integer that gets clamped
      * @returns this 👇
      */
-    writeUnsignedInteger(value: u32): this
+    writeUnsignedInteger(value: AnyNumber): this
     /**
      * Write a signed long
      * @param value A signed long that gets clamped
      * @returns this 👇
      */
-    writeSignedLong(value: s64): this
+    writeSignedLong(value: AnyNumber): this
     /**
      * Write a unsigned long
      * @param value A unsigned long that gets clamped
      * @returns this 👇
      */
-    writeUnsignedLong(value: u64): this
+    writeUnsignedLong(value: AnyNumber): this
     /**
      * Write a IEE 754 float16
      * @param value A IEE 754 float16 that gets clamped
      * @returns this 👇
      */
-    writeHalf(value: half): this
+    writeHalf(value: AnyNumber): this
     /**
      * Write a IEE 754 float32
      * @param value A IEE 754 float32 that gets clamped
      * @returns this 👇
      */
-    writeFloat(value: float): this
+    writeFloat(value: AnyNumber): this
     /**
      * Write a IEE 754 float64
      * @param value A IEE 754 float64 that gets clamped
      * @returns this 👇
      */
-    writeDouble(value: double): this
+    writeDouble(value: AnyNumber): this
     /**
      * write a arbitrary array buffer to this buffer
      * @param buffer the array buffer to use
