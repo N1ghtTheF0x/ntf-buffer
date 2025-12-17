@@ -1,6 +1,6 @@
-import { ISerializable } from "./serialize"
+import { IStringEncoding } from "./string"
 import { Struct, StructReaderDefinition } from "./struct"
-import { BinaryNumberMap, BinaryNumberType, double, float, half, s16, s24, s32, s64, s8, u16, u24, u32, u64, u8 } from "./types"
+import { AnyNumber, BinaryNumberMap, BinaryNumberType, double, float, half, s16, s24, s32, s64, s8, u16, u24, u32, u64, u8 } from "./types"
 
 /**
  * Interface for reading binary data
@@ -8,11 +8,16 @@ import { BinaryNumberMap, BinaryNumberType, double, float, half, s16, s24, s32, 
 export interface IReader
 {
     /**
-     * the current read position
+     * The current read position in bytes
      */
     readOffset: number
     /**
-     * can we read?
+     * Set the read position
+     * @param offset A offset in bytes
+     */
+    setReadOffset(offset: AnyNumber): this
+    /**
+     * Is this object still readable?
      */
     readonly readable: boolean
     /**
@@ -68,45 +73,42 @@ export interface IReader
      */
     readDouble(): double
     /**
-     * read an arbitrary array buffer from the buffer
-     * @param size the size of the buffer in bytes
-     * @returns a array buffer (not a buffer? (bro, just use `new Buffer(theReturnValueOfThisMethod)`))
+     * Read an fixed array buffer
+     * @param size The size of the buffer in bytes
      */
-    readBuffer(size: number): ArrayBufferLike
+    readBuffer(size: AnyNumber): ArrayBuffer
     /**
-     * read an array with `type` and size of `length` from this buffer
-     * @param type the type of array
-     * @param length the length of the array
-     * @returns the array
+     * Read an fixed array with `type` and size of `length`
+     * @param type The type of array
+     * @param length The length of the array
      */
     readArray<T extends BinaryNumberType>(type: T,length: number): Array<BinaryNumberMap[T]>
     /**
-     * read a ascii character from the buffer
-     * @returns a character
+     * Read a string character
+     * @param encoding The encoder to use
      */
-    readChar(): string
+    readCharacter(encoding: IStringEncoding): string
     /**
-     * read an ascii string with the length `length`
-     * @param length the length of the text
-     * @returns a string in ascii
+     * Read a string
+     * @param length The length of the text
+     * @param encoding The encoder to use
      */
-    readASCII(length: number): string
+    readString(length: AnyNumber,encoding: IStringEncoding): string
     /**
-     * read a struct from the buffer with a definition
-     * @param def the structure of the struct
-     * @returns the struct
+     * Read a pascal string
+     * @param lengthType The type of prefixed length
+     * @param encoding The encoder to use
+     */
+    readPascalString(lengthType: BinaryNumberType,encoding: IStringEncoding): string
+    /**
+     * Read a struct with a definition
+     * @param def The layout of the struct
+     * @throws Layout does not match result
      */
     readStruct<Def extends StructReaderDefinition>(def: Def): Struct<Def>
     /**
-     * fancy function for reading data by using a parameter `type` instead of methods
-     * @param type the type to read
-     * @returns the value as the type
+     * Fancy function for reading data by using a parameter `type` instead of methods
+     * @param type The binary type to read
      */
     read<T extends BinaryNumberType>(type: T): BinaryNumberMap[T]
-    /**
-     * Deserialize `object` by reading from the buffer. The object needs to implement {@link ISerializable}
-     * @param object The object to deserialize
-     * @returns The object deserialized
-     */
-    readObject<O extends ISerializable>(object: O): O
 }

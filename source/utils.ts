@@ -1,11 +1,10 @@
 import { AnyNumber } from "./types"
 
 /**
- * basic clamp function, nothing special
- * @param value the value to clamp
- * @param min the value to return if `value` is smaller than this
- * @param max the value to return if `value` is bigger than this
- * @returns either `value`, `min` or `max`
+ * Clamp `value` between `min` and `max`
+ * @param value A value
+ * @param min The minimum allowed value
+ * @param max The maximum allowed value
  */
 export function clamp<T extends AnyNumber>(value: T,min: T,max: T): T
 {
@@ -17,39 +16,79 @@ export function clamp<T extends AnyNumber>(value: T,min: T,max: T): T
 }
 
 /**
- * merge multiply array buffers into one
- * @param buffers array of array buffers
- * @returns one single array buffer from all the array buffers in the array
+ * Merge multiple array buffers into a array buffer
+ * @param buffers A list of array buffers
  */
 export function mergeArraybuffer(...buffers: Array<ArrayBufferLike>): ArrayBuffer
 {
-    // calculate the size of the resulting buffer
     const size = buffers.reduce((a,b) => a + b.byteLength,0)
-    const buffer = new ArrayBuffer(size) // make that buffer
-    let offset = 0 // let's keep track of the offset
+    const buffer = new ArrayBuffer(size)
+    let offset = 0
     for(const buf of buffers)
     {
-        // idk why this even works but that's ok 👍
-        new Uint8Array(buffer).set(new Uint8Array(buf),offset)
-        offset += buf.byteLength // let's continue on
+        writeBuffer(buffer,buf,offset)
+        offset += buf.byteLength 
     }
-    return buffer // gimme that shit
+    return buffer
 }
 
 /**
- * writes the array buffer `value` to array buffer `destination` with an `offset`
- * @param target the target array buffer to modify
- * @param value the value to write to the target
- * @param offset some offset
+ * Merge multiple array buffers into a shared array buffer
+ * @param buffers A list of array buffers
+ */
+export function mergeSharedArrayBuffer(...buffers: Array<ArrayBufferLike>): SharedArrayBuffer
+{
+    const size = buffers.reduce((a,b) => a + b.byteLength,0)
+    const buffer = new SharedArrayBuffer(size)
+    let offset = 0
+    for(const buf of buffers)
+    {
+        writeBuffer(buffer,buf,offset)
+        offset += buf.byteLength 
+    }
+    return buffer
+}
+
+/**
+ * Write `value` to `destination` at the provided `offset`
+ * @param target The target array buffer to modify
+ * @param value The value to write to the target
+ * @param offset A binary offset in bytes
  */
 export function writeBuffer(target: ArrayBufferLike,value: ArrayBufferLike,offset: number): void
 {
     /*
         alright it works like this:
 
-        - we create a view from the target (the Uint8Array thingy)
-        - we set another view from the value to the target (the other Uint8Array thingy) with an offset
+        - we create a view from the target
+        - we set another view from the value to the target with an offset
         - that's it, this looks weird but it works so...
     */
     new Uint8Array(target).set(new Uint8Array(value),offset)
+}
+
+/**
+ * Create a array buffer
+ * @param size Size of array buffer in bytes
+ */
+export function createArrayBuffer(size: AnyNumber): ArrayBuffer
+{
+    let buffer = new ArrayBuffer
+    const length = BigInt(size)
+    for(let i = 0n;i < length;i++)
+        mergeArraybuffer(buffer,new ArrayBuffer(1))
+    return buffer
+}
+
+/**
+ * Create a shared array buffer
+ * @param size Size of shared array buffer in bytes
+ */
+export function createSharedArrayBuffer(size: AnyNumber): SharedArrayBuffer
+{
+    let buffer = new SharedArrayBuffer
+    const length = BigInt(size)
+    for(let i = 0n;i < length;i++)
+        mergeSharedArrayBuffer(buffer,new SharedArrayBuffer(1))
+    return buffer
 }

@@ -11,7 +11,6 @@ export type AnyNumber = number | bigint
 /**
  * "Converts" an typed array to big endian, aka reverse
  * @param array A typed array
- * @returns `array` but reversed (big endian)
  */
 export const bigEndian = <T extends TypedArray>(array: T) => array.reverse() as T
 
@@ -137,11 +136,21 @@ export function double(v: AnyNumber): ArrayBuffer
     return new Float64Array([Number(v)]).buffer
 }
 /**
- * the byte order of the binary data
+ * The byte order of any binary data
  */
 export type Endianness = "little" | "big"
+
 /**
- * fancy map for generic shit
+ * Check if `value` is a endianness type
+ * @param value A value
+ */
+export function isEndianness(value: unknown): value is Endianness
+{
+    return typeof value == "string" && ["little","big"].includes(value)
+}
+
+/**
+ * A typed map for resolving to a binary type
  */
 export type BinaryNumberMap = {
     "s8": s8
@@ -159,15 +168,15 @@ export type BinaryNumberMap = {
     "double": double
 }
 /**
- * the key names of the fancy map for generic shit
+ * The type of a binary number as a string
  */
 export type BinaryNumberType = keyof BinaryNumberMap
 /**
- * I don't know why but there's no built-in type so I had to make one. These are all the Typed Arrays JavaScript has
+ * All typed arrays as one type
  */
 export type TypedArray = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | BigInt64Array | BigUint64Array | Float16Array | Float32Array | Float64Array
 /**
- * another fancy map for something (I think it's unused?)
+ * A typed map for resolving to a typed array
  */
 export type TypedArrayMap = {
     "s8": Int8Array
@@ -183,7 +192,154 @@ export type TypedArrayMap = {
     "double": Float64Array
 }
 
+/**
+ * Represents a object that has a `arrayBuffer` method which returns `Promise<ArrayBuffer>`. Objects such as `Blob` and `Response` fall under this category
+ */
 export interface IAsyncArrayBuffer
 {
+    /**
+     * Get the array buffer of this object
+     */
     arrayBuffer(): Promise<ArrayBuffer>
+}
+
+/**
+ * Check if `value` is a object with a asyncronized array buffer method
+ * @param value A value
+ */
+export function isAsyncArrayBuffer(value: unknown): value is IAsyncArrayBuffer
+{
+    return value !== null && typeof value == "object" &&
+            "arrayBuffer" in value && typeof value.arrayBuffer == "function"
+}
+
+/**
+ * A object that represents a slice of binary data
+ */
+export interface IArrayBufferView
+{
+    /**
+     * The array buffer
+     */
+    readonly buffer: ArrayBufferLike
+    /**
+     * The start of the array buffer
+     */
+    readonly byteOffset: number
+    /**
+     * The length of the viewable array buffer in bytes
+     */
+    readonly byteLength: number
+}
+
+/**
+ * Check if `value` is a array buffer view
+ * @param value A value
+ * @param checkES2024 Include functionality introduced in ES2024
+ */
+export function isArrayBufferView(value: unknown,checkES2024?: boolean): value is IArrayBufferView
+{
+    return value !== null && typeof value == "object" &&
+            "buffer" in value && isAnyArrayBuffer(value.buffer,checkES2024) &&
+            "byteOffset" in value && typeof value.byteOffset == "number" &&
+            "byteLength" in value && typeof value.byteLength == "number"
+}
+
+/**
+ * Check if `value` represent the binary `type`
+ * @param value A value
+ * @param type Type of binary
+ */
+export function isBinaryNumber<T extends keyof BinaryNumberMap>(value: unknown,type: T): value is BinaryNumberMap[T]
+{
+    return (
+        typeof value == "number" && [
+            "s8","u8",
+            "s16","u16",
+            "s32","u32",
+            "half","float","double"
+        ].includes(type)
+    ) || (
+        typeof value == "bigint" && [
+            "s64","u64"
+        ].includes(type)
+    )
+}
+
+/**
+ * Ensure that `value` matches the binary `type`
+ * @param value A value
+ * @param type Type of binary
+ * @throws Value does not represent binary type
+ */
+export function ensureBinaryNumber<T extends keyof BinaryNumberMap>(value: unknown,type: T): BinaryNumberMap[T]
+{
+    if(isBinaryNumber(value,type))
+        return value
+    throw new Error(`'${value}' does not represent '${type}'`)
+}
+
+/**
+ * Check if `value` is an array buffer
+ * @param value A value
+ * @param checkES2024 Include functionality introduced in ES2024
+ */
+export function isArrayBuffer(value: unknown,checkES2024: boolean = false): value is ArrayBuffer
+{
+    if(value === null || typeof value != "object")
+        return false
+    const es5 = "byteLength" in value && typeof value.byteLength == "number" &&
+                "slice" in value && typeof value.slice == "function"
+    const es2024 = "maxByteLength" in value && typeof value.maxByteLength == "number" &&
+                   "resizable" in value && typeof value.resizable == "boolean" &&
+                   "resize" in value && typeof value.resize == "function" &&
+                   "detached" in value && typeof value.detached == "boolean" &&
+                   "transfer" in value && typeof value.transfer == "function" &&
+                   "transferToFixedLength" in value && typeof value.transferToFixedLength == "function"
+    return checkES2024 ? es5 && es2024 : es5
+}
+
+/**
+ * Check if `value` is an shared array buffer
+ * @param value A value
+ * @param checkES2024 Include functionality introduced in ES2024
+ */
+export function isSharedArrayBuffer(value: unknown,checkES2024: boolean = false): value is SharedArrayBuffer
+{
+    if(value === null || typeof value != "object")
+        return false
+    const es2017 = "byteLength" in value && typeof value.byteLength == "number" &&
+                   "slice" in value && typeof value.slice == "function"
+    const es2024 = "growable" in value && typeof value.growable == "boolean" &&
+                   "maxByteLength" in value && typeof value.maxByteLength == "number" &&
+                   "grow" in value && typeof value.grow == "function"
+    return checkES2024 ? es2017 && es2024 : es2017
+}
+
+/**
+ * Check if `value` is a array buffer or shared array buffer
+ * @param value A value
+ * @param checkES2024 Include functionality introduced in ES2024
+ */
+export function isAnyArrayBuffer(value: unknown,checkES2024?: boolean): value is ArrayBufferLike
+{
+    return isArrayBuffer(value,checkES2024) || isSharedArrayBuffer(value,checkES2024)
+}
+
+/**
+ * A value that represents some kind of binary data
+ */
+export type BinaryDataLike = IArrayBufferView | ArrayBufferLike
+
+/**
+ * Resolve `value` to any kind of array buffer
+ * @param value A value that represents some kind of binary data
+ */
+export function resolveBinaryDataLike(value: BinaryDataLike): ArrayBufferLike
+{
+    if(isArrayBufferView(value))
+        return value.buffer.slice(value.byteOffset,value.byteOffset + value.byteLength)
+    if(isAnyArrayBuffer(value))
+        return value
+    throw new TypeError(`'${value}' is not binary data`)
 }

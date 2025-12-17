@@ -1,4 +1,3 @@
-// these are just hardcoded binary number limits
 export const MIN_S8 = -0x7f
 export const MAX_S8 = 0x80
 export const MAX_U8 = 0xff
