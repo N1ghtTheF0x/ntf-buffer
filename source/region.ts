@@ -1,95 +1,79 @@
+import { IBinaryData } from "./binary"
 import { MAX_DOUBLE, MAX_FLOAT, MAX_HALF, MAX_S16, MAX_S24, MAX_S32, MAX_S64, MAX_S8, MAX_U16, MAX_U32, MAX_U64, MAX_U8, MIN_DOUBLE, MIN_FLOAT, MIN_HALF, MIN_S16, MIN_S24, MIN_S32, MIN_S64, MIN_S8 } from "./limits"
-import { IReader } from "./reader"
-import { DESERIALSIZE_SYMBOL, ISerializable, SERIALIZE_SYMBOL } from "./serialize"
+import { IStringEncoding } from "./string"
 import { Struct, StructWriterDefinition, StructReaderDefinition } from "./struct"
-import { AnyNumber, BinaryNumberMap, BinaryNumberType, Endianness, IAsyncArrayBuffer, TypedArray, double, float, half, s16, s24, s32, s64, s8, u16, u24, u32, u64, u8 } from "./types"
-import { clamp, mergeArraybuffer, writeBuffer } from "./utils"
-import { IWriter } from "./writer"
+import { AnyNumber, BinaryDataLike, BinaryNumberMap, BinaryNumberType, Endianness, IArrayBufferView, IAsyncArrayBuffer, double, ensureBinaryNumber, float, half, isAnyArrayBuffer, resolveBinaryDataLike, s16, s24, s32, s64, s8, u16, u24, u32, u64, u8 } from "./types"
+import { clamp, createArrayBuffer, mergeArraybuffer, writeBuffer } from "./utils"
 
 /**
- * a better buffer class that that shitty NodeJS `Buffer` class
+ * A region of memory that can be written and/or read
  */
-export class Buffer implements IReader, IWriter
+export class MemoryRegion implements IBinaryData, IArrayBufferView
 {
 //#region Properties
     /**
-     * do not touch, here's where the magic happens :)
+     * The DataView object used to manipulate the binary data
      */
     private _view: DataView
-    /**
-     * the byte order of this buffer, only `"little"` and `"big"` are accepted
-     */
     public endianness: Endianness = "little"
     /**
-     * the array buffer of this buffer (bufferception)
+     * The array buffer of this memory region
      */
     public get buffer(): ArrayBufferLike {return this._view.buffer}
-    /**
-     * do people use this property on `DataView`? It's just that
-     */
     public get byteOffset(): number {return this._view.byteOffset}
-    /**
-     * the size of the buffer
-     */
     public get byteLength(): number{return this._view.byteLength}
-    
     public readOffset: number = 0
     public writeOffset: number = 0
     public get readable(): boolean {return this.readOffset < this.byteLength}
     public get writable(): boolean {return this.writeOffset < this.byteLength}
-    /**
-     * create a new `Buffer` instance with the size `size`
-     * @param size the size of the buffer in bytes
-     * @returns a buffer
-     */
 //#endregion
 //#region Static methods
-    public static create(size: number): Buffer
+    /**
+     * Allocate a new `MemoryRegion` with the provided size
+     * @param size Size in bytes
+     */
+    public static allocate(size: AnyNumber): MemoryRegion
     {
-        return new this(new ArrayBuffer(size))
+        return new this(createArrayBuffer(size))
     }
     /**
-     * create a `Buffer` instance from a response/blob. This method is async!
-     * @param response the response object from `fetch`, a blob or whatever implements {@link IAsyncArrayBuffer}
-     * @returns a buffer (shocking)
+     * Create a `MemoryRegion` from an asyncronize process such as `Response` or `Blob`
+     * @param response A asyncronize object that implements {@link IAsyncArrayBuffer}
      */
-    public static async fromAsync(response: IAsyncArrayBuffer): Promise<Buffer>
+    public static async fromAsync(response: IAsyncArrayBuffer): Promise<MemoryRegion>
     {
         return new this(await response.arrayBuffer())
     }
     /**
-     * create a `Buffer` instance from a typed array. This includes the NodeJS `Buffer` class because it's just a `Uint8Array` in disguise
-     * @param array any kind of typed array
-     * @returns a buffer that is better than NodeJS `Buffer`
+     * Create a `MemoryRegion` from a binary view such as this class, typed arrays and NodeJS's `Buffer` class
+     * @param array A object that implements {@link IArrayBufferView}
      */
-    public static fromTypedArray(array: TypedArray): Buffer
+    public static fromArrayBufferView(array: IArrayBufferView): MemoryRegion
     {
         return new this(array.buffer.slice(array.byteOffset,array.byteOffset + array.byteLength))
     }
     /**
-     * create a `Buffer` instance from multiple `Buffer` instances
-     * @param buffers array of (Array)Buffers
-     * @returns one Buffer from all the buffers
+     * Mergy binary data into a `MemoryRegion`
+     * @param buffers A list of binary data
      */
-    public static merge(...buffers: Array<Buffer | ArrayBufferLike>): Buffer
+    public static merge(...buffers: Array<BinaryDataLike>): MemoryRegion
     {
-        return new this(mergeArraybuffer(...buffers.map((buffer) => "buffer" in buffer ? buffer.buffer : buffer)))
+        return new this(mergeArraybuffer(...buffers.map(resolveBinaryDataLike)))
     }
     /**
-     * create a `Buffer` from a array buffer. These parameters are the same one from `DataView`
-     * @param buffer the array buffer we want to read/write from/to
-     * @param byteOffset an optional start from where to read/write (will slice the buffer)
-     * @param byteLength an optional length of the buffer (will slice the buffer)
+     * Create a memory region for a array buffer
+     * @param buffer A array buffer
+     * @param byteOffset A offset in bytes
+     * @param byteLength A fixed length
      */
 //#endregion
 //#region Constructor
-    public constructor(buffer: ArrayBufferLike,byteOffset?: number,byteLength?: number)
+    public constructor(buffer: BinaryDataLike,byteOffset?: number,byteLength?: number)
     {
-        this._view = new DataView(buffer,byteOffset,byteLength)
+        this._view = new DataView(resolveBinaryDataLike(buffer),byteOffset,byteLength)
     }
 //#endregion
-//#region R/W methods
-    // welp guess I did comment these in "reader.ts" and "writer.ts"...
+//#region Read/Write methods
     public readSignedByte(): s8
     {
         const value = this._view.getInt8(this.readOffset)
@@ -143,11 +127,12 @@ export class Buffer implements IReader, IWriter
         const value = this.readUnsigned24()
         return value & MAX_S24 ? value | 0xff000000 : value
     }
-    public writeUnsigned24(value: s24): this
+    public writeUnsigned24(value: AnyNumber): this
     {
-        const a = this.endianness === "little" ? value & 0xff : (value >> 16) & 0xff
-        const b = (value >> 8) & 0xff
-        const c = this.endianness === "little" ? (value >> 16) & 0xff : value & 0xff
+        const v = Number(value)
+        const a = this.endianness === "little" ? v & 0xff : (v >> 16) & 0xff
+        const b = (v >> 8) & 0xff
+        const c = this.endianness === "little" ? (v >> 16) & 0xff : v & 0xff
         return this.writeUnsignedByte(a).writeUnsignedByte(b).writeUnsignedByte(c)
     }
     public readUnsigned24(): u24
@@ -239,26 +224,30 @@ export class Buffer implements IReader, IWriter
         this.readOffset += 8
         return value
     }
-    public writeDouble(value: double): this
+    public writeDouble(value: AnyNumber): this
     {
-        this._view.setFloat64(this.writeOffset,clamp(value,MIN_DOUBLE,MAX_DOUBLE),this.endianness === "little")
+        this._view.setFloat64(this.writeOffset,clamp(Number(value),MIN_DOUBLE,MAX_DOUBLE),this.endianness === "little")
         this.writeOffset += 8
         return this
     }
-    // no comments found here
 //#region Buffer methods
-    public readBuffer(size: number): ArrayBufferLike
+    public readBuffer(size: AnyNumber): ArrayBuffer
     {
-        const buffer = this._view.buffer.slice(this.readOffset,this.readOffset + size)
-        this.readOffset += size
+        let buffer = mergeArraybuffer()
+        const length = BigInt(size)
+        for(let i = 0n;i < length;i++)
+        {
+            const value = this.readUnsignedByte()
+            buffer = mergeArraybuffer(buffer,u8(value))
+        }
         return buffer
     }
-    public writeBuffer(buffer: ArrayBufferLike): this
+    public writeBuffer(buffer: BinaryDataLike): this
     {
-        const target = this.buffer
-        writeBuffer(target,buffer,this.writeOffset)
-        this.writeOffset += buffer.byteLength
-        this._view = new DataView(target)
+        const data = resolveBinaryDataLike(buffer)
+        writeBuffer(this.buffer,data,this.writeOffset)
+        this.writeOffset += data.byteLength
+        this._view = new DataView(this.buffer,this.byteOffset,this.byteLength)
         return this
     }
 //#endregion
@@ -278,21 +267,32 @@ export class Buffer implements IReader, IWriter
     }
 //#endregion
 //#region String methods
-    public readChar(): string
+    public readCharacter(encoding: IStringEncoding): string
     {
-        return String.fromCharCode(this.readUnsignedByte())
+        return this.readString(1,encoding)
     }
-    public writeChar(char: string): this
+    public writeCharacter(char: string,encoding: IStringEncoding): this
     {
-        return this.writeUnsignedByte(char.charCodeAt(0))
+        return this.writeString(char[0],encoding)
     }
-    public readASCII(length: number): string
+    public readString(length: AnyNumber,encoding: IStringEncoding): string
     {
-        return String.fromCharCode(...this.readArray("u8",length))
+        return encoding.decode(this,length)
     }
-    public writeASCII(text: string): this
+    public writeString(string: string,encoding: IStringEncoding): this
     {
-        return this.writeArray("u8",text.split("").map((char) => char.charCodeAt(0) & 0xff))
+        return this.writeBuffer(encoding.encode(string))
+    }
+    public readPascalString(lengthType: BinaryNumberType,encoding: IStringEncoding): string
+    {
+        const length = this.read(lengthType)
+        return this.readString(length,encoding)
+    }
+    public writePascalString(string: string,lengthType: BinaryNumberType,encoding: IStringEncoding): this
+    {
+        return this
+        .write(lengthType,string.length)
+        .writeString(string,encoding)
     }
 //#endregion
 //#region Struct methods
@@ -322,26 +322,26 @@ export class Buffer implements IReader, IWriter
                 continue
             }
         }
-        return struct as Struct<Def>
+        return struct as Struct<Def> // TODO: remove "as"
     }
     public writeStruct<Def extends StructWriterDefinition>(def: Def,value: Struct<Def>): this
     {
         for(const [name,type] of Object.entries(def))
         {
             const v = value[name]
-            if(typeof type == "string")
+            if(typeof type == "string" && typeof v == "number")
             {
-                this.write(type,v as number)
+                this.write(type,v)
                 continue
             }
-            if(typeof type == "number")
+            else if(typeof type == "number" && isAnyArrayBuffer(v))
             {
-                this.writeBuffer(v as ArrayBuffer)
+                this.writeBuffer(v)
                 continue
             }
-            if(typeof type == "object")
+            else if(typeof type == "object" && typeof v == "object" && !isAnyArrayBuffer(v))
             {
-                this.writeStruct(type,v as any)
+                this.writeStruct(type,v)
                 continue
             }
         }
@@ -354,31 +354,31 @@ export class Buffer implements IReader, IWriter
         switch(type)
         {
             case "s8":
-                return this.readSignedByte() as BinaryNumberMap[T]
+                return ensureBinaryNumber(this.readSignedByte(),type)
             case "u8":
-                return this.readUnsignedByte() as BinaryNumberMap[T]
+                return ensureBinaryNumber(this.readUnsignedByte(),type)
             case "s16":
-                return this.readSignedShort() as BinaryNumberMap[T]
+                return ensureBinaryNumber(this.readSignedShort(),type)
             case "u16":
-                return this.readUnsignedShort() as BinaryNumberMap[T]
+                return ensureBinaryNumber(this.readUnsignedShort(),type)
             case "s24":
-                return this.readSigned24() as BinaryNumberMap[T]
+                return ensureBinaryNumber(this.readSigned24(),type)
             case "u24":
-                return this.readUnsigned24() as BinaryNumberMap[T]
+                return ensureBinaryNumber(this.readUnsigned24(),type)
             case "s32":
-                return this.readSignedInteger() as BinaryNumberMap[T]
+                return ensureBinaryNumber(this.readSignedInteger(),type)
             case "u32":
-                return this.readUnsignedInteger() as BinaryNumberMap[T]
+                return ensureBinaryNumber(this.readUnsignedInteger(),type)
             case "s64":
-                return this.readSignedLong() as BinaryNumberMap[T]
+                return ensureBinaryNumber(this.readSignedLong(),type)
             case "u64":
-                return this.readUnsignedLong() as BinaryNumberMap[T]
+                return ensureBinaryNumber(this.readUnsignedLong(),type)
             case "half":
-                return this.readHalf() as BinaryNumberMap[T]
+                return ensureBinaryNumber(this.readHalf(),type)
             case "float":
-                return this.readFloat() as BinaryNumberMap[T]
+                return ensureBinaryNumber(this.readFloat(),type)
             case "double":
-                return this.readDouble() as BinaryNumberMap[T]
+                return ensureBinaryNumber(this.readDouble(),type)
             default:
                 throw new TypeError(`unknown binary type '${type}'`)
         }
@@ -388,44 +388,57 @@ export class Buffer implements IReader, IWriter
         switch(type)
         {
             case "s8":
-                return this.writeSignedByte(value as number)
+                return this.writeSignedByte(ensureBinaryNumber(value,type))
             case "u8":
-                return this.writeUnsignedByte(value as number)
+                return this.writeUnsignedByte(ensureBinaryNumber(value,type))
             case "s16":
-                return this.writeSignedShort(value as number)
+                return this.writeSignedShort(ensureBinaryNumber(value,type))
             case "u16":
-                return this.writeUnsignedShort(value as number)
+                return this.writeUnsignedShort(ensureBinaryNumber(value,type))
             case "s24":
-                return this.writeSigned24(value as number)
+                return this.writeSigned24(ensureBinaryNumber(value,type))
             case "u24":
-                return this.writeUnsigned24(value as number)
+                return this.writeUnsigned24(ensureBinaryNumber(value,type))
             case "s32":
-                return this.writeSignedInteger(value as number)
+                return this.writeSignedInteger(ensureBinaryNumber(value,type))
             case "u32":
-                return this.writeUnsignedInteger(value as number)
+                return this.writeUnsignedInteger(ensureBinaryNumber(value,type))
             case "s64":
-                return this.writeSignedLong(value as bigint)
+                return this.writeSignedLong(ensureBinaryNumber(value,type))
             case "u64":
-                return this.writeUnsignedLong(value as bigint)
+                return this.writeUnsignedLong(ensureBinaryNumber(value,type))
             case "half":
-                return this.writeHalf(value as number)
+                return this.writeHalf(ensureBinaryNumber(value,type))
             case "float":
-                return this.writeFloat(value as number)
+                return this.writeFloat(ensureBinaryNumber(value,type))
             case "double":
-                return this.writeDouble(value as number)
+                return this.writeDouble(ensureBinaryNumber(value,type))
             default:
                 throw new TypeError(`unknown binary type '${type}'`)
         }
     }
 //#endregion
 //#region Methods
-    // jk, here are comments
+    public setEndianness(endianness: Endianness): this
+    {
+        this.endianness = endianness
+        return this
+    }
+    public setReadOffset(offset: AnyNumber): this
+    {
+        this.readOffset = Number(offset)
+        return this
+    }
+    public setWriteOffset(offset: AnyNumber): this
+    {
+        this.writeOffset = Number(offset)
+        return this
+    }
     /**
      * Map each byte with a new byte
-     * @param cb The mapper function with the signature: {@link Buffer.Mapper `(byte,offset,buffer) => byte`}
-     * @returns this 👇
+     * @param cb A function that maps each byte to a new byte
      */
-    public map(cb: Buffer.Mapper): this
+    public map(cb: MemoryRegion.Mapper): this
     {
         // save current offset
         const wOffset = this.writeOffset, rOffset = this.readOffset
@@ -440,20 +453,10 @@ export class Buffer implements IReader, IWriter
             // write the new byte
             this.writeUnsignedByte(value)
         }
-        // set offsets back to orignal
+        // set offsets back to original
         this.writeOffset = wOffset
         this.readOffset = rOffset
         return this
-    }
-//#endregion
-//#region Serialization methods
-    public writeObject<O extends ISerializable>(object: O): this
-    {
-        return this.writeBuffer(object[SERIALIZE_SYMBOL]()._view.buffer)
-    }
-    public readObject<O extends ISerializable>(object: O): O
-    {
-        return object[DESERIALSIZE_SYMBOL](this)
     }
 //#endregion
 //#region Symbols
@@ -479,53 +482,51 @@ export class Buffer implements IReader, IWriter
                 return this._view.byteLength
         }
     }
-    public get [Symbol.toStringTag](): "Buffer"
+    public get [Symbol.toStringTag](): "MemoryRegion"
     {
-        return "Buffer"
+        return "MemoryRegion"
     }
     /**
      * Returns a string representation of an object.
      */
-    public toString(): Buffer.Stringified
+    public toString(): MemoryRegion.Stringified
     {
-        return `Buffer<${this._view.byteLength}>`
+        return `MemoryRegion<${this._view.byteLength}>`
     }
     /**
-     * Convert this Buffer into a valid JSON object, used by `JSON.stringify`
-     * @returns A valid {@link IBuffer JSON object}
+     * Convert this region into a valid JSON object, used by `JSON.stringify`
      */
-    public toJSON(): IBuffer
+    public toJSON(): IMemoryRegion
     {
         return {
-            type: "Buffer",
+            type: "MemoryRegion",
             data: [...this]
         }
     }
 //#endregion
 }
 //#region Types
-export namespace Buffer
+export namespace MemoryRegion
 {
     /**
      * The mapper function used in `Buffer.map`
      * @param byte The current byte
      * @param offset The offset of the current byte in the buffer
      * @param buffer The buffer being read through
-     * @returns The new value of `byte`
      */
-    export type Mapper = (byte: u8,offset: number,buffer: Buffer) => u8
+    export type Mapper = (byte: u8,offset: number,region: MemoryRegion) => u8
     /**
      * The `Buffer.toString` type
      */
-    export type Stringified = `Buffer<${number}>`
+    export type Stringified = `MemoryRegion<${number}>`
 }
 
 /**
- * A interface representation of the `Buffer` class (it's the type of `Buffer.toJSON`). This has the same structure as the NodeJS's `Buffer.toJSON` method
+ * A interface representation of the `MemoryRegion` class (it's the return type of `MemoryRegion.toJSON`). This has the same structure as the NodeJS's `Buffer.toJSON` method
  */
-export interface IBuffer
+export interface IMemoryRegion
 {
-    type: "Buffer"
+    type: "MemoryRegion"
     data: Array<number>
 }
 //#endregion
