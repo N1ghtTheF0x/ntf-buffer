@@ -3,12 +3,20 @@
     "exclude": ["node_modules","dist"],
     "compilerOptions": {
         "target": "ESNext",
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "moduleDetection": "force",
         "lib": ["ESNext"],
         "types": [],
         "strict": true,
-        "sourceMap": true,
-        "declaration": true,
-        "declarationMap": true,
-        "declarationDir": "dist/types"
+        "noImplicitOverride": true,
+        "noImplicitReturns": true,
+        "noImplicitAny": true,
+        "noImplicitThis": true,
+        "isolatedModules": true,
+        "noUncheckedIndexedAccess": true,
+        "noUncheckedSideEffectImports": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true
     }
 }

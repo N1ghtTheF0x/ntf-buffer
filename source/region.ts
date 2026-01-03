@@ -273,7 +273,9 @@ export class MemoryRegion implements IBinaryData, IArrayBufferView
     }
     public writeCharacter(char: string,encoding: IStringEncoding): this
     {
-        return this.writeString(char[0],encoding)
+        if(char.length !== 1)
+            throw new TypeError("char is not a character")
+        return this.writeString(char[0]!,encoding)
     }
     public readString(length: AnyNumber,encoding: IStringEncoding): string
     {
